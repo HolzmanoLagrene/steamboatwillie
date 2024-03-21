@@ -1,0 +1,74 @@
+/* Add custom styles here */
+body {
+    background-color: #f8f9fa;
+    font-family: Arial, sans-serif;
+}
+
+.highlight {
+    background: #bebeea;
+    border: 2px dashed !important;
+}
+
+.wrong_input {
+    background: #f10707;
+    border: 2px dashed !important;
+}
+
+.deactivated {
+    background: #919191;
+    border: 2px dashed !important;
+}
+
+.landing-username {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    font-size: 18px;
+    color: #343a40;
+}
+
+.logout-button {
+    background-color: #dc3545;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.icon-badge {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    line-height: 25px;
+    text-align: center;
+    border-radius: 50%;
+    background-color: #007bff; /* Change the background color as needed */
+    color: white;
+    font-size: 14px;
+}
+
+.queued-icon {
+    color: #3c3cff;
+}
+
+.failed-icon {
+    color: #ff0000;
+}
+.successful-icon {
+    color: #02b902;
+}
+
+.error-icon {
+    color: red;
+}
+
+.success-icon {
+    color: green;
+}
+.failure-icon {
+    color: red;
+}
+
+::before {
+    margin-right: 5px; /* Adjust as needed */
+}

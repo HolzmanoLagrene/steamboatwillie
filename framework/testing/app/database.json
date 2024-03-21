@@ -1,0 +1,16 @@
+{
+  "cases": {
+    "2024-0001": {
+      "case_description": "TEst",
+      "case_data": [
+        {
+          "original_name": "test4.png",
+          "file_name": "test4_2024-02-29T14:20:20.256350Z",
+          "file_path": "/evidence/test4.png/test4_2024-02-29T14:20:20.256350Z",
+          "size": 0,
+          "unique_id": "647121b2-7819-493c-87ce-238d49fef63b"
+        }
+      ]
+    }
+  }
+}

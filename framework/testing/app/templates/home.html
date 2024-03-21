@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beautiful Landing Page</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <style>
+        /* Add custom styles here */
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+
+
+        .highlight {
+            background: #bebeea;
+            border: 2px dashed #ced4da; /* Dotted border */
+        }
+
+
+        .landing-username {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 18px;
+            color: #343a40;
+        }
+
+        .logout-button {
+            background-color: #dc3545;
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+<!-- Landing content -->
+<div class="container mt-5">
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="case-management-tab" data-toggle="tab" href="#case-management" role="tab" aria-controls="case-management" aria-selected="true">Case Management</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="evidence-management-tab" data-toggle="tab" href="#evidence-management" role="tab" aria-controls="evidence-management" aria-selected="false">Evidence Management</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="evidence-processing-tab" data-toggle="tab" href="#evidence-processing" role="tab" aria-controls="evidence-processing" aria-selected="false">Evidence Processing</a>
+        </li>
+    </ul>
+    <!-- Tab panes -->
+    <div class="tab-content mt-3" id="myTabContent">
+        <!-- Case Management Tab -->
+        <div class="tab-pane fade show active" id="case-management" role="tabpanel" aria-labelledby="case-management-tab">
+            <!-- Case Table -->
+            <h2>Case Management</h2>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Case Number</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <!-- Sample case data (replace with dynamic data) -->
+                {% for case in case_data %}
+                <tr>
+                    <td>{{ case[0] }}</td>
+                    <td>{{ case[1] }}</td>
+                </tr>
+                {% endfor %}
+
+                </tbody>
+            </table>
+            <!-- Button to open case creation form modal -->
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createCaseModal">Create New Case</button>
+        </div>
+        <!-- Evidence Management Tab -->
+        <div class="tab-pane fade" id="evidence-management" role="tabpanel" aria-labelledby="evidence-management-tab">
+            <h2>Evidence Management</h2>
+            <!-- Dropdown to select case -->
+            <div class="form-group">
+                <label for="caseSelect">Select Case:</label>
+                <select class="form-control" id="caseSelect">
+                    {% for case in case_data %}
+                    {% if loop.first %}
+                    <option value="" selected disabled hidden>Choose here</option>
+                    {% endif %}
+                    <option>{{ case[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Drop-off area for files -->
+            <div class="card-body">
+                <div id="drop-area" class="rounded d-flex justify-content-center align-items-center" style="height: 200px; cursor: pointer;border:1px solid black;">
+                    <div class="text-center">
+                        <i class="bi bi-cloud-arrow-up-fill text-primary" style="font-size: 48px;"></i>
+                        <p class="mt-3">Drag and drop your image here or click to select a file.</p>
+                    </div>
+                </div>
+                <input type="file" id="fileElem" accept="*" class="d-none">
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="evidence-processing" role="tabpanel" aria-labelledby="evidence-management-tab">
+            <h2>Evidence Processing</h2>
+            <!-- Dropdown to select case -->
+            <div class="form-group">
+                <label for="caseSelect">Select Case:</label>
+                <select class="form-control" id="caseSelect2">
+
+                    {% for case in case_data %}
+                    {% if loop.first %}
+                    <option value="" selected disabled hidden>Choose here</option>
+                    {% endif %}
+                    <option>{{ case[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="caseSelect">Select Evidence:</label>
+                <option value="" selected disabled hidden>Choose here</option>
+                <select class="form-control" id="evidenceSelect">
+                    <option value="" selected disabled hidden>No evidence available</option>
+                </select>
+            </div>
+
+            <!-- Drop-off area for files -->
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Create Case Modal -->
+<div class="modal fade" id="createCaseModal" tabindex="-1" role="dialog" aria-labelledby="createCaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createCaseModalLabel">Create New Case</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="testForm">
+                <div class="modal-body">
+                    <!-- Case creation form fields -->
+                    <div class="form-group">
+                        <label for="caseNumber">Case Number:</label>
+                        <input type="text" class="form-control" id="caseNumber">
+                    </div>
+                    <div class="form-group">
+                        <label for="caseDescription">Description:</label>
+                        <input type="text" class="form-control" id="caseDescription">
+                    </div>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="create_new_case()">Create Case</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Evidence Modal -->
+<div class="modal fade" id="createEvidenceModal" tabindex="-1" role="dialog" aria-labelledby="createEvidenceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Evidence</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <form id="evidenceForm">
+                    <!-- Evidence creation form fields -->
+                    <div class="form-group">
+                        <label for="evidenceName">Evidence Name:</label>
+                        <input type="text" class="form-control" id="evidenceName">
+                    </div>
+                    <div class="form-group">
+                        <label for="evidenceDescription">Description:</label>
+                        <input type="text" class="form-control" id="evidenceDescription">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitForm()">Submit</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Username display -->
+<div class="landing-username">
+    {{logged_in_user}}
+    <button class="logout-button" onclick="window.location='/logout'">Logout</button>
+</div>
+
+
+<!-- Bootstrap scripts -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    // Drag and drop event listeners for the drop area
+    let dropArea = document.getElementById("drop-area");
+    let fileElem = document.getElementById("fileElem");
+    var active_file;
+    ["dragenter", "dragover"].forEach((eventName) => {
+        dropArea.addEventListener(eventName, function highlight(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.add("highlight");
+        }, false);
+    });
+    ["dragleave", "drop"].forEach((eventName) => {
+        dropArea.addEventListener(eventName, function unhighlight(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.remove("highlight");
+        }, false);
+    });
+    dropArea.addEventListener("drop", function (event) {
+        let items = event.dataTransfer.items;
+        if (items && items.length > 0 && items[0].kind === "file") {
+            active_file = items[0].getAsFile()
+            openEvidenceModal()
+        } else {
+            console.log("String Type instead of file")
+        }
+
+    }, false);
+    dropArea.addEventListener("click", function (event) {
+        fileElem.click();
+    }, false);
+    fileElem.addEventListener("change", function (event) {
+        active_file = fileElem.files[0]
+        openEvidenceModal()
+    });
+
+    function openEvidenceModal() {
+        const evidence_modal_field_name = document.getElementById("evidenceName")
+        if (active_file) {
+            evidence_modal_field_name.value = active_file.name
+            $('#createEvidenceModal').modal('show');
+        } else {
+            console.log()
+        }
+
+    }
+
+    function create_new_case() {
+        var formData = new FormData();
+        formData.append("case_name", document.getElementById('caseNumber').value)
+        formData.append("case_description", document.getElementById('caseDescription').value)
+        const qs = new URLSearchParams(formData).toString();
+        $('#createCaseModal').modal('hide');
+        fetch('/create_new_case?' + qs, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+            }
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Form submitted successfully');
+                    // Optionally, close the modal
+                } else {
+                    console.error('Form submission failed');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        location.href = '/';
+    }
+
+    document.getElementById('caseSelect2').addEventListener('change', async function (event) {
+        // Get selected case ID from the dropdown
+        const caseId = event.target.value;
+
+        try {
+            // Send request to backend to query evidence data
+            const response = await fetch(`/evidence_data?case=${caseId}`);
+            if (response.ok) {
+                // Parse response data as JSON
+                const data = await response.json();
+                const selectElement = document.getElementById('evidenceSelect');
+                selectElement.innerHTML = ''; // Clear existing options
+
+                data.forEach(([value, label]) => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = label;
+                    optionElement.textContent = value;
+                    selectElement.appendChild(optionElement);
+                });
+
+                // Enable the select element
+                selectElement.disabled = false;
+            } else {
+                console.error('Failed to query evidence data');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    });
+
+
+    function submitForm() {
+        var formData = new FormData();
+        formData.append("case", document.getElementById('caseSelect').value)
+        formData.append("name", document.getElementById('evidenceName').value)
+        formData.append("description", document.getElementById('evidenceDescription').value)
+        const qs = new URLSearchParams(formData).toString();
+        var turbinia_form = new FormData();
+        turbinia_form.append("files", active_file)
+        turbinia_form.append("ticket_id", document.getElementById('evidenceName').value)
+        $('#createEvidenceModal').modal('hide');
+        fetch('/create_evidence?' + qs, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+            },
+            body: turbinia_form
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Form submitted successfully');
+                    // Optionally, close the modal
+                } else {
+                    console.error('Form submission failed');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+</script>
+</body>
+</html>

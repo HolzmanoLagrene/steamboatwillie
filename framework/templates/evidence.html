@@ -1,0 +1,37 @@
+<div class="tab-pane" id="evidence-management" role="tabpanel" aria-labelledby="evidence-management-tab">
+    <h2>Evidence Management</h2>
+    <div class="form-group">
+        <label for="caseSelect">Select Case:</label>
+        <select class="form-control" id="caseSelect">
+            {% for case in case_data %}
+            {% if loop.first %}
+            <option value="" selected disabled hidden>Choose Evidence</option>
+            {% endif %}
+            <option>{{ case[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <h2>Existing Evidence</h2>
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Evidence Name</th>
+            <th>Description</th>
+            <th>UUID</th>
+            <th>Creator</th>
+        </tr>
+        </thead>
+        <tbody id="existingEvidenceTable">
+        </tbody>
+    </table>
+    <div class="card-body">
+        <div id="drop-area" class="rounded d-flex justify-content-center align-items-center" style="height: 200px; cursor: pointer;border:1px solid black;visibility: hidden">
+            <div id="inner-drop1" class="text-center">
+                <i id="inner-drop2" class="bi bi-cloud-arrow-up-fill text-primary" style="font-size: 48px;"></i>
+                <p id="inner-drop3" class="mt-3">Drag and drop your image here or click to select a file.</p>
+            </div>
+        </div>
+        <input type="file" id="fileElem" accept="*" class="d-none">
+    </div>
+</div>
+{% include "evidence_modal.html" %}

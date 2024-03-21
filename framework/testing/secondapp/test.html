@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Evidence</title>
+</head>
+<body>
+<form id="uploadForm" enctype="multipart/form-data">
+    <input type="text" id="ticket_id" name="ticket_id" style="display: none"> <!-- Sample ticket ID -->
+    <input type="file" name="files" multiple>
+    <button type="button" onclick="uploadEvidence()">Upload Evidence</button>
+</form>
+<form id="frontendForm" enctype="multipart/form-data">
+    <input type="text" id="evidenceName" name="ticket_id" value="12345"> <!-- Sample ticket ID -->
+    <input type="text" id="evidenceDescription" name="files" value="12345">
+    <input type="text" id="evidenceReason" name="files" value="12345">
+</form>
+<pre id="message"></pre>
+<script>
+    async function uploadEvidence() {
+        const frontend_form = new FormData()
+        frontend_form.append("name", document.getElementById('evidenceName').value)
+        frontend_form.append("description", document.getElementById('evidenceDescription').value)
+        frontend_form.append("reason", document.getElementById('evidenceReason').value)
+        const ticket_id = document.getElementById('ticket_id')
+        ticket_id.value = document.getElementById('evidenceName').value
+        const backend_data = document.getElementById('uploadForm')
+        const backend_form = new FormData(backend_data);
+        var return_code
+        const qs = new URLSearchParams(frontend_form).toString();
+        try {
+            const response = await fetch('http://localhost:8006/create_evidence?'+qs, {
+                method: 'POST',
+                body: backend_form
+            });
+            const message = document.getElementById('message')
+            if (response.ok) {
+                return_code = await response.json()
+            } else {
+                return_code = await response.json()
+            }
+        } catch (error) {
+            return_code = await response.json()
+        }
+        message.innerHTML = JSON.stringify(return_code, null, 2);
+    }
+</script>
+</body>
+</html>

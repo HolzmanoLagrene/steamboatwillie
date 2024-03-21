@@ -1,0 +1,24 @@
+<div class="tab-pane" id="case-management" role="tabpanel" aria-labelledby="case-management-tab">
+    <!-- Case Table -->
+    <h2>Case Management</h2>
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Case Number</th>
+            <th>Description</th>
+            <th>Creator</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for case in case_data %}
+        <tr>
+            <td>{{ case[0] }}</td>
+            <td>{{ case[1] }}</td>
+            <td>{{ case[2] }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createCaseModal">Create New Case</button>
+</div>
+{% include "case_modal.html" %}

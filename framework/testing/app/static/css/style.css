@@ -1,0 +1,29 @@
+/* Add custom styles here */
+body {
+    background-color: #f8f9fa;
+    font-family: Arial, sans-serif;
+}
+
+
+.highlight {
+    background: #bebeea;
+    border: 2px dashed #ced4da; /* Dotted border */
+}
+
+
+.landing-username {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    font-size: 18px;
+    color: #343a40;
+}
+
+.logout-button {
+    background-color: #dc3545;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+}
