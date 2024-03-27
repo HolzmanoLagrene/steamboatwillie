@@ -18,44 +18,43 @@
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
             <div class="navbar-nav">
                 {% if flag == "cases" %}
-                <a class="nav-item nav-link active" href="/cases">Cases</a>
-                <a class="nav-item nav-link" href="/evidence">Evidence</a>
-                <a class="nav-item nav-link" href="/processing">Processing</a>
+                    <a class="nav-item nav-link active" href="/cases">Cases</a>
+                    <a class="nav-item nav-link" href="/evidence">Evidence</a>
+                    <a class="nav-item nav-link" href="/processing">Processing</a>
                 {% elif flag == "evidence" %}
-                <a class="nav-item nav-link" href="/cases">Cases</a>
-                <a class="nav-item nav-link active" href="/evidence">Evidence</a>
-                <a class="nav-item nav-link" href="/processing">Processing</a>
+                    <a class="nav-item nav-link" href="/cases">Cases</a>
+                    <a class="nav-item nav-link active" href="/evidence">Evidence</a>
+                    <a class="nav-item nav-link" href="/processing">Processing</a>
                 {% elif flag == "processing" %}
-                <a class="nav-item nav-link" href="/cases">Cases</a>
-                <a class="nav-item nav-link" href="/evidence">Evidence</a>
-                <a class="nav-item nav-link active" href="/processing">Processing</a>
+                    <a class="nav-item nav-link" href="/cases">Cases</a>
+                    <a class="nav-item nav-link" href="/evidence">Evidence</a>
+                    <a class="nav-item nav-link active" href="/processing">Processing</a>
                 {% endif %}
             </div>
         </div>
     </nav>
     {% if flag == "cases" %}
-    {% include "cases.html" %}
+        {% include "cases.html" %}
     {% elif flag == "evidence" %}
-    {% include "evidence.html" %}
+        {% include "evidence.html" %}
     {% elif flag == "processing" %}
-    {% include "processing.html" %}
+        {% include "processing.html" %}
     {% endif %}
 </div>
 <div class="landing-username">
-    {{logged_in_user}}
+    {{ logged_in_user }}
     <button class="logout-button" onclick="window.location='/logout'">Logout</button>
 </div>
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% if flag == "cases" %}
-<script src="/static/js/cases_code.js"></script>
+    <script src="/static/js/cases_code.js"></script>
 {% elif flag == "evidence" %}
-<script src="/static/js/evidence_code.js"></script>
+    <script src="/static/js/evidence_code.js"></script>
 {% elif flag == "processing" %}
-<script src="/static/js/processing_code.js"></script>
+    <script src="/static/js/processing_code.js"></script>
 {% endif %}
-<script>
-</script>
 </body>
 </html>

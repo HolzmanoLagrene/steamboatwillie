@@ -35,6 +35,7 @@ body {
     border-radius: 5px;
     cursor: pointer;
 }
+
 .icon-badge {
     display: inline-block;
     width: 25px;
@@ -54,6 +55,7 @@ body {
 .failed-icon {
     color: #ff0000;
 }
+
 .successful-icon {
     color: #02b902;
 }
@@ -65,10 +67,17 @@ body {
 .success-icon {
     color: green;
 }
+
 .failure-icon {
     color: red;
 }
 
 ::before {
     margin-right: 5px; /* Adjust as needed */
+}
+
+canvas {
+    background-repeat: no-repeat;!important;
+    background-position: center;!important;
+    background-size: auto 25px;!important;
 }

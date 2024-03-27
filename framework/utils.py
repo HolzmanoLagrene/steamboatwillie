@@ -3,6 +3,7 @@ import copy
 import inspect
 import os.path
 import pickle
+import time
 import uuid
 from collections import defaultdict
 from typing import Dict, Any, Union
@@ -10,10 +11,12 @@ from typing import Dict, Any, Union
 import networkx as nx
 import pathpy as pp
 import yaml
-from turbinia_api_lib import ApiClient, TurbiniaEvidenceApi,TurbiniaRequestsApi
+from turbinia_api_lib import ApiClient, TurbiniaEvidenceApi, TurbiniaRequestsApi
 from turbinia_api_lib.configuration import Configuration
 from turbinia_api_lib.model.base_request_options import BaseRequestOptions
 from turbinia_api_lib.model.request import Request
+
+from framework.output_pipeline_mapping import output_to_pipeline
 
 
 class GraphToYaml:
@@ -62,21 +65,28 @@ class TurbiniaWrapper:
         return request_id
 
     @classmethod
-    def check_process(cls, request_id):
+    def get_request_state(cls, request_id):
         configuration = Configuration(host="http://192.168.1.158:8080")
         with ApiClient(configuration) as api:
             req_api = TurbiniaRequestsApi(api)
-            request_id = req_api.get_request_status(request_id)
+            while True:
+                try:
+                    response = req_api.get_request_status(request_id)
+                    break
+                except Exception as e:
+                    time.sleep(1)
+        return response
+
     @classmethod
-    def upload_evidence(cls, case_number, evidence_name, evidence_file,**kwargs):
+    def upload_evidence(cls, case_number, evidence_name, evidence_file, **kwargs):
         configuration = Configuration(host="http://192.168.1.158:8080")
         with ApiClient(configuration) as api:
             ev_api = TurbiniaEvidenceApi(api)
-            request_id = ev_api.upload_evidence([evidence_file],f"{case_number}/{evidence_name}")
+            request_id = ev_api.upload_evidence([evidence_file], f"{case_number}/{evidence_name}")
         return request_id
 
     @classmethod
-    def get_request_status(cls,turbinia_request_handle:str):
+    def get_request_status(cls, turbinia_request_handle: str):
         configuration = Configuration(host="http://192.168.1.158:8080")
         with ApiClient(configuration) as api:
             req_api = TurbiniaRequestsApi(api)
@@ -112,6 +122,15 @@ class EvidenceGraph:
     def get_evidence_name_for_process(self):
         return self.customized_graph.find_nodes(select_node=lambda x: x["indegree"] == 0)[0]
 
+    def is_valid_subclass(self, class_hierarchy, subclass_):
+        contains_turbinia_job = False
+        for cls in class_hierarchy:
+            if str(cls) != subclass_ and cls != object:
+                if inspect.getmro(cls)[1] == subclass_:
+                    contains_turbinia_job = True
+                    break
+        return contains_turbinia_job
+
     def build_base_model(self):
         from turbinia.jobs.interface import TurbiniaJob
         from turbinia.workers import TurbiniaTask
@@ -120,12 +139,18 @@ class EvidenceGraph:
             evidence_in = []
             evidence_out = []
             tasks = defaultdict(dict)
-            for name, class_ in inspect.getmembers(inspect.getmodule(subclass), inspect.isclass):
+            class_dict = dict(inspect.getmembers(inspect.getmodule(subclass), inspect.isclass))
+            module_imports = [[c for c in inspect.getmembers(inspect.getmodule(b), inspect.isclass)] for a, b in inspect.getmembers(inspect.getmodule(subclass), inspect.ismodule)]
+            for classlist_from_modules in module_imports:
+                for module_name, class_ in classlist_from_modules:
+                    if not module_name in class_dict:
+                        class_dict[module_name] = class_
+            for name, class_ in class_dict.items():
                 class_hierarchy = inspect.getmro(class_)
-                if TurbiniaJob in class_hierarchy:
+                if self.is_valid_subclass(class_hierarchy, TurbiniaJob):
                     evidence_in += [a.__name__ for a in class_.evidence_input]
                     evidence_out += [a.__name__ for a in class_.evidence_output]
-                elif TurbiniaTask in class_hierarchy:
+                if self.is_valid_subclass(class_hierarchy, TurbiniaTask):
                     tasks[f"{class_.__name__}"]["parameters"] = class_.TASK_CONFIG
                     tasks[f"{class_.__name__}"]["types"] = self.identify_value_types(class_.TASK_CONFIG)
             result[subclass.__name__] = {"evidence_in": evidence_in, "evidence_out": evidence_out, "tasks": tasks}
@@ -207,8 +232,8 @@ class EvidenceGraph:
         else:
             pass
 
-    def change_evidence_status(self,evidence_name:str,handler_name:str,evidence_value:bool):
-        self.customized_graph.nodes[evidence_name]["possible_processors"][handler_name]=evidence_value
+    def change_evidence_status(self, evidence_name: str, handler_name: str, evidence_value: bool):
+        self.customized_graph.nodes[evidence_name]["possible_processors"][handler_name] = evidence_value
 
     def get_available_input_evidence_types2(self):
         return self.customized_graph.find_nodes(select_node=lambda x: x["type"] == "evidence" and "source_path" in x["task_params"])
@@ -233,7 +258,7 @@ class EvidenceGraph:
                 if "config_types" in tasks[task]:
                     del tasks[task]["config_types"]
             jobs[job_node]["tasks"] = tasks
-            jobs[job_node]["evidence"] = [{a:self.customized_graph.nodes[a]["possible_processors"]} for a in self.customized_graph.find_nodes(select_node=lambda x: x["type"] == "evidence") if a in self.customized_graph.successors[job_node]][0]
+            jobs[job_node]["evidence"] = [{a: self.customized_graph.nodes[a]["possible_processors"]} for a in self.customized_graph.find_nodes(select_node=lambda x: x["type"] == "evidence") if a in self.customized_graph.successors[job_node]][0]
         return jobs
 
     def visualize_base_graph(self):
@@ -296,11 +321,7 @@ class EvidenceGraph:
         return yaml_string
 
     def get_processors(self, evidence_output):
-        fixed_options_for_now = {
-            "PlasoFile":["Timesketch"],
-            "BulkExtractorOutput":["KottosPipeline"]
-        }
-        if evidence_output in fixed_options_for_now:
-            return {option:True for option in fixed_options_for_now[evidence_output]+["ElasticSearch"]}
+        if evidence_output in output_to_pipeline:
+            return {option: True for option in fixed_options_for_now[evidence_output] + ["ElasticSearch"]}
         else:
-            return {"ElasticSearch":True}
+            return {"ElasticSearch": True}

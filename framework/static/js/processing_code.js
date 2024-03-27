@@ -537,6 +537,44 @@ async function fetchDataAndFillTable() {
 }
 
 
+function createStatusPie(status_pie, OutputName, data) {
+    status_pie.style.setProperty("background-image", `url("/static/img/${OutputName.toLowerCase()}_icon.png")`)
+    status_pie.style.setProperty("height", `40px`)
+    status_pie.style.setProperty("width", `auto`)
+
+    const data_ = {
+        labels: ['Queued', 'Success', 'Failed', 'Running'],
+        datasets: [
+            {
+                data: [data.queued, data.success, data.failure, data.running],
+                backgroundColor: ['rgb(128,123,123)', 'rgb(2,185,2)', 'rgb(255,0,0)', 'rgb(60,60,255)'],
+            }
+        ]
+    };
+
+    const config = {
+        type: 'doughnut',
+        data: data_,
+        options: {
+            cutout: "65%",
+            animation: {
+                duration: 0
+            },
+            responsive: false,
+            plugins: {
+                legend: {
+                    display: false,
+                },
+                title: {
+                    display: false,
+                }
+            }
+        },
+    };
+
+    new Chart(status_pie, config);
+}
+
 // Function to fill the table with data
 function fillTable(data) {
     const tableBody = document.getElementById('existingProcessingTable');
@@ -544,49 +582,137 @@ function fillTable(data) {
 
     data.forEach(item => {
         const row = document.createElement('tr');
-
+        row.setAttribute("id",`processing_row_${item.id}`)
         const nameCell = document.createElement('td');
-        nameCell.textContent = item.start;
+        nameCell.classList.add("align-middle")
+
+        nameCell.textContent = item.processing_start;
         row.appendChild(nameCell);
 
         const turbiniaProgressCell = document.createElement('td');
-        turbiniaProgressCell.classList.add('progress-column');
-        const queuedIcon = createIcon(item.queued_tasks, 'fas fa-tasks queued-icon ml-1');
-        const failedIcon = createIcon(item.failed_tasks, 'fas fa-exclamation-circle failed-icon ml-1');
-        const successfulIcon = createIcon(item.successful_tasks, 'fas fa-check-circle successful-icon ml-1');
+        const queuedIcon = createIcon(item.processing_queued_tasks, 'fas fa-tasks queued-icon ml-1');
+        const failedIcon = createIcon(item.processing_failed_tasks, 'fas fa-exclamation-circle failed-icon ml-1');
+        const successfulIcon = createIcon(item.processing_successful_tasks, 'fas fa-check-circle successful-icon ml-1');
         turbiniaProgressCell.appendChild(failedIcon);
         turbiniaProgressCell.appendChild(createArrowIcon("left"));
         turbiniaProgressCell.appendChild(queuedIcon);
         turbiniaProgressCell.appendChild(createArrowIcon("right"));
         turbiniaProgressCell.appendChild(successfulIcon);
-        row.append(turbiniaProgressCell)
+        turbiniaProgressCell.classList.add("align-middle")
 
-        const overallStatusCell = document.createElement('td');
-        switch (item.status) {
+        switch (item.processing_status) {
             case "completed_with_errors":
                 const completed_with_errors = document.createElement('i');
-                completed_with_errors.classList.add('fas', 'fa-exclamation-circle', 'error-icon');
-                overallStatusCell.appendChild(completed_with_errors)
+                completed_with_errors.classList.add('fas', 'fa-exclamation-circle', 'error-icon', "ml-4");
+                turbiniaProgressCell.appendChild(completed_with_errors)
                 break
             case "successful":
                 const success = document.createElement('i');
-                success.classList.add('fas', 'fa-check-circle', 'success-icon');
-                overallStatusCell.appendChild(success)
+                success.classList.add('fas', 'fa-check-circle', 'success-icon', "ml-4");
+                turbiniaProgressCell.appendChild(success)
                 break
             case "failed":
                 const failed = document.createElement('i');
-                failed.classList.add('fas', 'fa-times-circle', 'failure-icon');
-                overallStatusCell.appendChild(failed)
+                failed.classList.add('fas', 'fa-times-circle', 'failure-icon', "ml-4");
+                turbiniaProgressCell.appendChild(failed)
                 break
             default:
                 const spinningIcon = document.createElement('i');
-                spinningIcon.classList.add('fas', 'fa-spinner', 'fa-spin');
-                overallStatusCell.appendChild(spinningIcon)
+                spinningIcon.classList.add('fas', 'fa-spinner', 'fa-spin', "ml-4");
+                turbiniaProgressCell.appendChild(spinningIcon)
 
         }
-        row.appendChild(overallStatusCell);
+
+        const outputHandlingCell = document.createElement('td');
+        outputHandlingCell.classList.add("d-flex", "flex-row")
+        if (Object.keys(item.output_handling_overall_status).length > 0) {
+            const aggregatedData = aggregateStatus(item.output_handling_overall_status);
+            for (const [key, counts] of Object.entries(aggregatedData)) {
+                const statusPie = document.createElement('canvas');
+                statusPie.setAttribute("id", `status_pie_${item.id}_${key}`)
+                createStatusPie(statusPie, key, counts)
+                outputHandlingCell.appendChild(statusPie)
+            }
+        }
+        outputHandlingCell.classList.add("align-middle")
+        const buttonCell = document.createElement('td');
+        const button = document.createElement('button');
+        button.innerText="Remove Processing"
+        button.setAttribute("id",`remove_handle_${item.id}`)
+        button.addEventListener('click', function (event) {
+            event.stopPropagation()
+            event.preventDefault()
+            const caseSelect = document.getElementById('caseSelect2').value
+            const evidenceSelect = document.getElementById('evidenceSelect').value
+            var formData = new FormData();
+            formData.append("case", caseSelect)
+            formData.append("evidence", evidenceSelect)
+            formData.append("processing_handle", event.target.id.replace("remove_handle_",""))
+
+            const qs = new URLSearchParams(formData).toString();
+
+            fetch('/processing/remove_processing?' + qs, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            }).then(async function (response) {
+                const data = await response.json()
+            }).catch(error => {
+                console.error('Error:', error);
+            });
+        })
+        button.classList.add('btn', 'btn-primary');
+        buttonCell.appendChild(button)
+
+        row.appendChild(turbiniaProgressCell);
+        row.appendChild(outputHandlingCell)
+        row.appendChild(buttonCell)
         tableBody.appendChild(row);
     });
+}
+
+
+function aggregateStatus(data) {
+    // Initialize an object to store the aggregated percentages
+    const aggregatedPercentages = {};
+
+    // Iterate over each key-value pair in the data
+    for (const [key, values] of Object.entries(data)) {
+        // Count the total number of tasks for the current key
+        const totalTasks = values.length;
+
+        // Initialize an object to store the aggregated percentages for the current key
+        const percentages = {
+            success: 0,
+            failure: 0,
+            queued: 0,
+            running: 0
+        };
+
+        // Count the number of each status in the values array and calculate the percentage
+        for (const value of values) {
+            if (value === 'success') {
+                percentages.success++;
+            } else if (value === 'failure') {
+                percentages.failure++;
+            } else if (value === 'queued') {
+                percentages.queued++;
+            } else if (value === 'running') {
+                percentages.running++;
+            }
+        }
+
+        // Convert counts to percentages
+        for (const status in percentages) {
+            percentages[status] = (percentages[status] / totalTasks) * 100;
+        }
+
+        // Store the aggregated percentages for the key
+        aggregatedPercentages[key] = percentages;
+    }
+
+    return aggregatedPercentages;
 }
 
 // Function to create an icon element
@@ -614,5 +740,5 @@ function fetchDataAndFillTableRepeatedly() {
     fetchDataAndFillTable();
     intervalID = setInterval(() => {
         fetchDataAndFillTable();
-    }, 2000); // 10 seconds
+    }, 5000); // 10 seconds
 }

@@ -1,6 +1,8 @@
+import random
 from datetime import timedelta, datetime
 from typing import List
 
+from fastapi import BackgroundTasks
 from fastapi import Request, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -11,6 +13,7 @@ from starlette import status
 from starlette.responses import RedirectResponse, FileResponse
 from starlette.templating import Jinja2Templates
 
+from framework.airflow_wrapper import EvidencePipelineOrchestrator
 from framework.db import FakeDatabase
 from framework.exceptions import NotAuthenticatedException
 from framework.schemas import ProcessingGraphData, UpdateGraphData
@@ -20,7 +23,7 @@ from framework.utils import TurbiniaWrapper, EvidenceGraph
 templates = Jinja2Templates(directory="templates")
 
 SECRET = "super-secret-key"
-manager = LoginManager(SECRET, '/login', use_cookie=True, not_authenticated_exception=NotAuthenticatedException)
+manager = LoginManager(SECRET, '/login', use_cookie=True, custom_exception=NotAuthenticatedException)
 
 DB = {
     'users': {
@@ -30,6 +33,8 @@ DB = {
 
     }
 }
+
+running_threads = {}
 
 
 def query_user(user_id: str):
@@ -113,23 +118,31 @@ async def update_graph(data: UpdateGraphData):
         task_name, config_name = data.job_id.split("-")
         eg.change_task_parameter(task_name, config_name, data.job_state)
     elif data.update_type == "evidence_processing_choice":
-        outputtype,handler=data.job_id.split("-")
-        eg.change_evidence_status(outputtype,handler,data.job_state)
+        outputtype, handler = data.job_id.split("-")
+        eg.change_evidence_status(outputtype, handler, data.job_state)
     eg.save_state()
     processing_graph_data = eg.to_json()
     json_compatible_item_data = jsonable_encoder(processing_graph_data)
     return JSONResponse(content=json_compatible_item_data)
 
 
-async def start_processing(case: str, evidence: str):
+async def start_processing(case: str, evidence: str, background_tasks: BackgroundTasks, user=Depends(manager)):
     eg = EvidenceGraph()
+    epo = EvidencePipelineOrchestrator()
     fd = FakeDatabase()
     local_path = fd.get_location(case, evidence)
     yaml_string = eg.to_yaml_string(encode=True)
     evidence_type = eg.get_evidence_name_for_process()
     turbinia_handle = TurbiniaWrapper.start_process(evidence_type, local_path, yaml_string)
     fd.add_processing_handle(case, evidence, turbinia_handle)
+    #epo.start_output_handling_pipelines(case, evidence, turbinia_handle, eg)
+    background_tasks.add_task(epo.start_output_handling_pipelines, *(case, evidence, turbinia_handle, eg))
     return JSONResponse(content={'status': 'success', 'data': "data"})
+
+
+async def remove_processing(case: str, evidence: str, processing_handle, background_tasks: BackgroundTasks):
+    fd = FakeDatabase()
+    fd.del_processing_handle(case, evidence, processing_handle)
 
 
 def login_form(request: Request):
@@ -172,19 +185,42 @@ def get_evidence_in_case(selectedCase: str, user=Depends(manager)):
     return fd.list_evidence_for_case(selectedCase)
 
 
-def get_processing_status_for_evidence(case:str, evidence:str, user=Depends(manager)):
+def create_fake():
+    def generate_values():
+        # Generate three random values
+        value1 = random.randint(0, 10)
+        value2 = random.randint(0, 10 - value1)
+        value3 = random.randint(0, 10 - value1 - value2)
+
+        # Calculate the fourth value to ensure the total sum is 100
+        value4 = 10 - value1 - value2 - value3
+
+        return value1, value2, value3, value4
+
+    result = {}
+    for key in ["Timesketch", "ElasticSearch", "Kottos"]:
+        s, f, q, r = generate_values()
+        result[key] = ["success"] * s + ["failed"] * f + ["queued"] * q + ["running"] * r
+    return result
+
+
+def get_processing_status_for_evidence(case: str, evidence: str, background_tasks: BackgroundTasks, user=Depends(manager)):
     fd = FakeDatabase()
-    evidence_data = fd.get_evidence_in_case(case,evidence)
+    afw = EvidencePipelineOrchestrator()
+    evidence_data = fd.get_evidence_in_case(case, evidence)
     status_packed_all = []
     if "processing_handle" in evidence_data and evidence_data["processing_handle"]:
-        for processing_handle in evidence_data["processing_handle"]:
+        for processing_handle, airflow_handles in evidence_data["processing_handle"].items():
             processing_overall_status = TurbiniaWrapper.get_request_status(processing_handle)
+            output_handling_overall_status = afw.get_state_of_output_handling_pipelines(case, evidence, processing_handle)
             status_packed = {
-                "status":processing_overall_status["status"],
-                "start":min([datetime.strptime(a["start_time"].split(".")[0],"%Y-%m-%dT%H:%M:%S") for a in processing_overall_status["tasks"]]).strftime("%d.%m.%Y %H:%M:%S"),
-                "successful_tasks":processing_overall_status["successful_tasks"],
-                "failed_tasks":processing_overall_status["failed_tasks"],
-                "queued_tasks": processing_overall_status["task_count"]-(processing_overall_status["successful_tasks"] + processing_overall_status["failed_tasks"])
+                "id": processing_handle,
+                "processing_status": processing_overall_status["status"],
+                "processing_start": min([datetime.strptime(a["start_time"].split(".")[0], "%Y-%m-%dT%H:%M:%S") for a in processing_overall_status["tasks"]]).strftime("%d.%m.%Y %H:%M:%S"),
+                "processing_successful_tasks": processing_overall_status["successful_tasks"],
+                "processing_failed_tasks": processing_overall_status["failed_tasks"],
+                "processing_queued_tasks": processing_overall_status["task_count"] - (processing_overall_status["successful_tasks"] + processing_overall_status["failed_tasks"]),
+                "output_handling_overall_status": output_handling_overall_status
             }
             status_packed_all.append(status_packed)
         content = status_packed_all

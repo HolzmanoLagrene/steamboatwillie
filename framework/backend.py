@@ -25,6 +25,7 @@ processing_router.add_api_route('/create_process', methods=["POST"], endpoint=cr
 processing_router.add_api_route('/update_graph', methods=["POST"], endpoint=update_graph, response_class=JSONResponse)
 processing_router.add_api_route('/start_process', methods=["POST"], endpoint=start_processing, response_class=JSONResponse)
 processing_router.add_api_route('/fetch_processing_status', methods=["GET"], endpoint=get_processing_status_for_evidence, response_class=JSONResponse)
+processing_router.add_api_route('/remove_processing', methods=["GET"], endpoint=remove_processing, response_class=JSONResponse)
 
 app.add_exception_handler(NotAuthenticatedException, auth_exception_handler)
 
