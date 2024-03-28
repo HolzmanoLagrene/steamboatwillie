@@ -1,6 +1,7 @@
 import random
 import string
 import time
+from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List
 from typing import Optional
@@ -88,6 +89,15 @@ class AirflowApiWrapper:
         except client.ApiException as e:
             print("Exception when calling DAGRunApi->get_dag_run: %s\n" % e)
             return None
+    @with_api_client
+    def has_dag_id(self, api_client, dag_id: str):
+        api_instance = dag_api.DAGApi(api_client)
+        try:
+            api_response = api_instance.get_dags()
+            return any([a["dag_id"]==dag_id for a in api_response.dags])
+        except client.ApiException as e:
+            print("Exception when calling DAGRunApi->get_dag_run: %s\n" % e)
+            return False
 
     def track_dag_run(self, dag_id: str, dag_run_id: str):
         task_ended_not_ended = True
@@ -115,15 +125,11 @@ class EvidencePipelineOrchestrator:
     def patch_path(self, path: str):
         return Path("/media/CrazySnitch_Shared/turbinia").joinpath(path.lstrip("/")).as_posix()
 
-    def clean_paths(self, pathslists: List):
-        pathlists_clean = []
-        for paths in pathslists:
-            paths_clean = set()
-            for path in paths:
-                new_path = self.patch_path(path)
-                paths_clean.add(new_path)
-            pathlists_clean.append(list(paths_clean))
-        return pathlists_clean
+    def clean_task_data(self, task_datas: List):
+        task_datas_clean = []
+        for task_data in task_datas:
+            task_datas_clean.append({task_data["name"]:list(set([self.patch_path(p) for p in task_data["saved_paths"]]))})
+        return task_datas_clean
 
     def get_pipeline_evidence_mapping(self, eg: EvidenceGraph):
         evidence_to_pipeline_mapping = {}
@@ -136,7 +142,7 @@ class EvidencePipelineOrchestrator:
     def create_next_scheduled_airflow_jobs(self, data, evidence_to_pipeline_mapping, eg):
         handled_jobs = []
         df_tasks = pd.DataFrame(data["tasks"])
-        next_scheduled_airflow_data = {}
+        next_scheduled_airflow_data = defaultdict(lambda : defaultdict(lambda:defaultdict(list)))
         for taskname, task_df in df_tasks[~pd.isna(df_tasks["successful"]) & ~df_tasks["id"].isin(handled_jobs)].groupby("name"):
             handled_jobs += task_df.id.tolist()
             try:
@@ -144,14 +150,22 @@ class EvidencePipelineOrchestrator:
             except:
                 continue
             evidence_name = list(eg.customized_graph.successors[job_name_to_task].intersection(eg.customized_graph.find_nodes(self.get_nodes)))[0]
-            path_data = task_df["saved_paths"].tolist()
+            task_data = task_df[["name","saved_paths"]].to_dict("records")
             for pipeline in evidence_to_pipeline_mapping[evidence_name]:
-                if pipeline not in next_scheduled_airflow_data:
-                    next_scheduled_airflow_data[pipeline] = {evidence_name: self.clean_paths(path_data)}
-                else:
-                    next_scheduled_airflow_data[pipeline][evidence_name] = self.clean_paths(path_data)
-        return next_scheduled_airflow_data
+                task_datas = self.clean_task_data(task_data)
+                for task_data_ in task_datas:
+                    for task_name, pathlist in task_data_.items():
+                        next_scheduled_airflow_data[pipeline][evidence_name][task_name].append(pathlist)
+        return EvidencePipelineOrchestrator.defaultdict_to_dict(next_scheduled_airflow_data)
 
+    @staticmethod
+    def defaultdict_to_dict(d):
+        if isinstance(d, defaultdict):
+            d = dict(d)
+        if isinstance(d, dict):
+            for key, value in d.items():
+                d[key] = EvidencePipelineOrchestrator.defaultdict_to_dict(value)
+        return d
     def start_output_handling_pipelines(self, case: str, evidence: str, processing_handle: dict, eg: EvidenceGraph):
         evidence_to_pipeline_mapping = self.get_pipeline_evidence_mapping(eg)
         is_request_running = True
@@ -163,22 +177,21 @@ class EvidencePipelineOrchestrator:
                 continue
             next_scheduled_airflow_data = self.create_next_scheduled_airflow_jobs(started_tasks, evidence_to_pipeline_mapping, eg)
             for pipeline_name, pipeline_data in next_scheduled_airflow_data.items():
-                if pipeline_name == "Timesketch":
-                    pipeline_name_airflow = f"{pipeline_name.lower()}_pipeline"
+                pipeline_name_airflow = f"{pipeline_name.lower()}_pipeline"
+                if self.api.has_dag_id(pipeline_name_airflow):
                     dag_run_id = self.api.run_dag(pipeline_name_airflow, pipeline_data)
                     if dag_run_id:
                         fd.add_airflow_handle(case, evidence, processing_handle["request_id"], dag_run_id)
             time.sleep(5)
-        print()
 
     def get_state_of_output_handling_pipelines(self, case: str, evidence: str, processing_handle: str ):
         fd = FakeDatabase()
         airflow_handles = fd.get_airflow_handle_list(case, evidence, processing_handle)
-        overall_state = {}
+        overall_state = defaultdict(list)
         for airflow_handle in airflow_handles:
             pipeline_id = "_".join(airflow_handle.split("_")[0:2])
             pipeline_name = pipeline_id.replace("_pipeline", "").capitalize()
             status = self.api.get_dag_run_status(pipeline_id, airflow_handle)
-            overall_state[pipeline_name] = [str(status.state)]
-        return overall_state
+            overall_state[pipeline_name]+=[str(status.state)]
+        return dict(overall_state)
 

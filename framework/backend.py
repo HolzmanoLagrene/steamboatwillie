@@ -30,7 +30,6 @@ processing_router.add_api_route('/remove_processing', methods=["GET"], endpoint=
 app.add_exception_handler(NotAuthenticatedException, auth_exception_handler)
 
 app.add_api_route('/', endpoint=home, methods=["GET"], response_class=HTMLResponse)
-app.add_api_route('/favicon.ico', endpoint=favicon, methods=["GET"], include_in_schema=False)
 app.add_api_route('/login', methods=["GET"], endpoint=login_form, response_class=HTMLResponse)
 app.add_api_route('/login', methods=["POST"], endpoint=login, response_class=JSONResponse)
 app.add_api_route('/logout', methods=["GET"], endpoint=logout, response_class=JSONResponse)

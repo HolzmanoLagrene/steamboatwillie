@@ -66,10 +66,6 @@ def get_user_data_if_exists(data):
     return username
 
 
-async def favicon():
-    return FileResponse("favicon.ico")
-
-
 def home(request: Request, user=Depends(manager)):
     return RedirectResponse("/cases")
 

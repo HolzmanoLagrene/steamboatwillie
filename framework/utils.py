@@ -258,7 +258,11 @@ class EvidenceGraph:
                 if "config_types" in tasks[task]:
                     del tasks[task]["config_types"]
             jobs[job_node]["tasks"] = tasks
-            jobs[job_node]["evidence"] = [{a: self.customized_graph.nodes[a]["possible_processors"]} for a in self.customized_graph.find_nodes(select_node=lambda x: x["type"] == "evidence") if a in self.customized_graph.successors[job_node]][0]
+            enabled_outputs = [{a: self.customized_graph.nodes[a]["possible_processors"]} for a in self.customized_graph.find_nodes(select_node=lambda x: x["type"] == "evidence" and x["enabled"]) if a in self.customized_graph.successors[job_node]]
+            if enabled_outputs:
+                jobs[job_node]["evidence"] = enabled_outputs[0]
+            else:
+                jobs[job_node]["evidence"] = {}
         return jobs
 
     def visualize_base_graph(self):
